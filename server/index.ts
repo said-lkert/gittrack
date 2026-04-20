@@ -748,6 +748,64 @@ app.get("/api/github/contributors", async (req, res) => {
   }
 });
 
+// --- Monitor routes (KV-backed, graceful fallback if KV not configured) ---
+
+async function kvGet<T>(key: string): Promise<T | null> {
+  try {
+    const { kv } = await import("@vercel/kv");
+    return await kv.get<T>(key);
+  } catch {
+    return null;
+  }
+}
+
+async function kvSet(key: string, value: string, ttl?: number): Promise<void> {
+  try {
+    const { kv } = await import("@vercel/kv");
+    if (ttl) {
+      await kv.set(key, value, { ex: ttl });
+    } else {
+      await kv.set(key, value);
+    }
+  } catch {
+    // KV not available (local dev), silently skip
+  }
+}
+
+app.post("/api/monitor/register", async (req, res) => {
+  const { repoUrl, projectName } = req.body as { repoUrl?: string; projectName?: string };
+  if (!repoUrl) return res.status(400).json({ error: "repoUrl is required." });
+
+  try {
+    const existing = (await kvGet<Array<{ repoUrl: string; projectName: string }>>("monitor:repos")) || [];
+    const alreadyRegistered = existing.some((r) => r.repoUrl.toLowerCase() === repoUrl.toLowerCase());
+
+    if (!alreadyRegistered) {
+      existing.push({ repoUrl, projectName: projectName || "Project", registeredAt: new Date().toISOString() } as any);
+      await kvSet("monitor:repos", JSON.stringify(existing));
+    }
+
+    return res.json({ ok: true, registered: !alreadyRegistered });
+  } catch {
+    return res.json({ ok: true, registered: false, kvUnavailable: true });
+  }
+});
+
+app.get("/api/monitor/latest", async (req, res) => {
+  const repoUrl = typeof req.query.repoUrl === "string" ? req.query.repoUrl : "";
+  if (!repoUrl) return res.status(400).json({ error: "repoUrl query parameter is required." });
+
+  try {
+    const key = `monitor:result:${Buffer.from(repoUrl.toLowerCase()).toString("base64url")}`;
+    const raw = await kvGet<string>(key);
+    if (!raw) return res.json({ snapshot: null });
+    const snapshot = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return res.json({ snapshot });
+  } catch {
+    return res.json({ snapshot: null });
+  }
+});
+
 // --- Server start (skipped on Vercel) ---
 
 export { app };

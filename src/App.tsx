@@ -158,6 +158,37 @@ export default function App() {
     }
   }, [currentProject?.id]);
 
+  useEffect(() => {
+    if (!currentProject?.repoUrl) return;
+    const repoUrl = currentProject.repoUrl;
+
+    fetch("/api/monitor/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repoUrl, projectName: currentProject.name }),
+    }).catch(() => {});
+
+    fetch(`/api/monitor/latest?repoUrl=${encodeURIComponent(repoUrl)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.snapshot) {
+          const snapshot = data.snapshot as MonitorSnapshot;
+          const storedKey = `gittrack_ai_monitor_${currentProject.id}`;
+          const existing = localStorage.getItem(storedKey);
+          const existingDate = existing ? JSON.parse(existing)?.lastRunAt : null;
+
+          if (!existingDate || snapshot.lastRunAt > existingDate) {
+            setMonitorSnapshot(snapshot);
+            localStorage.setItem(storedKey, JSON.stringify(snapshot));
+            if (snapshot.insights?.length > 0) {
+              setInsights(snapshot.insights);
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  }, [currentProject?.id, currentProject?.repoUrl]);
+
   const activeRepoUrl = useMemo(() => currentProject?.repoUrl || null, [currentProject]);
 
   const effectiveMembers = useMemo<Member[]>(() => {
