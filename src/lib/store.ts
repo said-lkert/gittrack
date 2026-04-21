@@ -79,13 +79,21 @@ export function useAppStore() {
   const logout = () => setState((current) => ({ ...current, user: null, currentProjectId: null, providers: [] }));
   const hydrateSession = (payload: { user: User | null; projects?: Project[]; providers?: string[] }) =>
     setState((current) => {
-      const projects = payload.projects ?? current.projects;
+      const serverProjects = payload.projects ?? [];
+      const localProjects = current.projects;
+      const merged = [...localProjects];
+      for (const sp of serverProjects) {
+        if (!merged.some((p) => p.id === sp.id)) {
+          merged.push(sp);
+        }
+      }
+      const projects = merged;
       const hasCurrentProject = projects.some((project) => project.id === current.currentProjectId);
       return {
         ...current,
         user: payload.user,
         projects,
-        providers: payload.providers ?? current.providers,
+        providers: payload.providers && payload.providers.length > 0 ? payload.providers : current.providers,
         currentProjectId: payload.user ? (hasCurrentProject ? current.currentProjectId : projects[0]?.id || null) : null,
       };
     });
