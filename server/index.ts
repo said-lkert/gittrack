@@ -24,6 +24,16 @@ const googleClientId = process.env.GOOGLE_OAUTH_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI || `${apiBaseUrl}/auth/google/callback`;
 
+// Debug: log resolved URLs on cold start (visible in Vercel function logs)
+console.log("[GitTrack] frontendUrl:", frontendUrl);
+console.log("[GitTrack] apiBaseUrl:", apiBaseUrl);
+console.log("[GitTrack] githubRedirectUri:", githubRedirectUri);
+console.log("[GitTrack] googleRedirectUri:", googleRedirectUri);
+console.log("[GitTrack] VERCEL_URL:", process.env.VERCEL_URL);
+console.log("[GitTrack] FRONTEND_URL:", process.env.FRONTEND_URL);
+console.log("[GitTrack] API_PUBLIC_URL:", process.env.API_PUBLIC_URL);
+console.log("[GitTrack] GITHUB_OAUTH_REDIRECT_URI:", process.env.GITHUB_OAUTH_REDIRECT_URI);
+
 // --- Types ---
 
 type CookieSession = {
@@ -413,7 +423,20 @@ function requireConfiguredOAuth(res: Response, provider: "github" | "google") {
 // --- Routes ---
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "gittrack-api" });
+  res.json({
+    ok: true,
+    service: "gittrack-api",
+    debug: {
+      frontendUrl,
+      apiBaseUrl,
+      githubRedirectUri,
+      googleRedirectUri,
+      VERCEL_URL: process.env.VERCEL_URL || "(not set)",
+      FRONTEND_URL: process.env.FRONTEND_URL || "(not set)",
+      API_PUBLIC_URL: process.env.API_PUBLIC_URL || "(not set)",
+      GITHUB_OAUTH_REDIRECT_URI: process.env.GITHUB_OAUTH_REDIRECT_URI || "(not set)",
+    },
+  });
 });
 
 app.get("/auth/me", (req, res) => {
