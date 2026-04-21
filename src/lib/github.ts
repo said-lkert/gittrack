@@ -147,6 +147,6 @@ export async function fetchGitHubLiveData(repoUrl?: string | null): Promise<GitH
 }
 
 export function subscribeToGitHubLiveUpdates(onUpdate: () => void) {
-  const id = window.setInterval(onUpdate, 45_000);
+  const id = window.setInterval(onUpdate, 15_000);
   return () => window.clearInterval(id);
 }
