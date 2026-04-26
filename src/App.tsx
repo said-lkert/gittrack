@@ -219,11 +219,16 @@ export default function App() {
 
   const [pendingSuggestions, setPendingSuggestions] = useState<PendingSuggestion[]>([]);
   const processedShasRef = useRef<Set<string>>(new Set());
+  const commitsRef = useRef(commits);
+
+  useEffect(() => {
+    commitsRef.current = commits;
+  }, [commits]);
 
   useEffect(() => {
     if (!currentProject || !githubLiveData || githubLiveData.commits.length === 0) return;
 
-    const knownShas = new Set(commits.map((c) => c.sha));
+    const knownShas = new Set(commitsRef.current.map((c) => c.sha));
     const newLiveCommits = githubLiveData.commits.filter(
       (lc) => {
         const sha = lc.sha.slice(0, 7);

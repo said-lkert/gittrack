@@ -322,7 +322,7 @@ function mapContributors(contributors: GitHubContributor[], recentCommits: GitHu
       totalContributions: contributor.contributions,
       recentCommits: recent.recentCommits,
       lastCommitAt: recent.lastCommitAt,
-      status: lastCommitTime > now - 7 * 24 * 60 * 60 * 1000 ? "active" : "inactive",
+      status: lastCommitTime > now - 48 * 60 * 60 * 1000 ? "active" : "inactive",
     };
   });
 }
@@ -369,7 +369,7 @@ async function ensureLiveState(parsed: ParsedRepo, accessToken?: string | null) 
     liveState &&
     liveState.owner === parsed.owner &&
     liveState.repo === parsed.repo &&
-    Date.now() - new Date(liveState.updatedAt).getTime() < 60_000
+    Date.now() - new Date(liveState.updatedAt).getTime() < 20_000
   ) {
     return liveState;
   }
